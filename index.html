@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="theme-color" content="#111111" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>WWE Fantasy League</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#111;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.page{min-height:100vh;padding:20px;background:linear-gradient(180deg,#111 0%,#1f1f1f 55%,#2b1111 100%)}
+.card{border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:18px;background:rgba(255,255,255,.07);box-shadow:0 18px 45px rgba(0,0,0,.25)}
+.grid{margin-top:16px;display:grid;gap:12px}.button-card{display:block;padding:16px;border-radius:18px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);cursor:pointer}
+.small{opacity:.72;font-size:14px;line-height:1.45}.gold{background:#d4af37;color:#111;font-weight:800}.danger{background:#8b1e1e;color:white}
+input,button,select{width:100%;padding:14px;border-radius:14px;border:none;font-size:16px} input,select{background:white;color:#111} button{background:#d4af37;color:#111;font-weight:800;cursor:pointer}button:disabled{opacity:.5}
+.list{display:grid;gap:10px;margin-top:16px}.row{padding:14px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:rgba(212,175,55,.18);color:#f5d76e;font-size:12px;font-weight:800;margin:3px}.money{font-size:28px;font-weight:900;color:#f5d76e}
+.menu{position:sticky;top:0;z-index:10;margin:-20px -20px 16px -20px;padding:12px 20px;background:rgba(17,17,17,.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.1)}
+.menu-row{display:flex;gap:8px;overflow:auto;padding-top:8px}.menu-row button{min-width:max-content;padding:9px 12px;font-size:13px;border-radius:999px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.tab{padding:10px;border-radius:12px;background:rgba(255,255,255,.1);text-align:center;font-size:13px;cursor:pointer}.tab.active{background:#d4af37;color:#111;font-weight:800}
+</style>
+</head>
+<body><div id="app"></div>
+<script>
+const STARTING_BANK = 250000000;
+const KEY = "wwe-fantasy-manager-upgrade-v1";
+const TKO_PRICE = 186.79;
+let filterRole = "All";
+
+const TALENT = [
+  { id:"roman-reigns", name:"Roman Reigns", rating:97, brand:"SmackDown", role:"Wrestler", tier:"Franchise Star" },
+  { id:"cody-rhodes", name:"Cody Rhodes", rating:95, brand:"Raw", role:"Wrestler", tier:"Main Event", champion:true },
+  { id:"rhea-ripley", name:"Rhea Ripley", rating:96, brand:"Raw", role:"Wrestler", tier:"Franchise Star" },
+  { id:"seth-rollins", name:"Seth Rollins", rating:93, brand:"Raw", role:"Wrestler", tier:"Main Event" },
+  { id:"cm-punk", name:"CM Punk", rating:93, brand:"Raw", role:"Wrestler", tier:"Main Event" },
+  { id:"gunther", name:"Gunther", rating:92, brand:"Raw", role:"Wrestler", tier:"Main Event" },
+  { id:"randy-orton", name:"Randy Orton", rating:91, brand:"SmackDown", role:"Wrestler", tier:"Main Event" },
+  { id:"jey-uso", name:"Jey Uso", rating:90, brand:"Raw", role:"Wrestler", tier:"Top Star" },
+  { id:"logan-paul", name:"Logan Paul", rating:90, brand:"SmackDown", role:"Wrestler", tier:"Special Attraction" },
+  { id:"liv-morgan", name:"Liv Morgan", rating:89, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"aj-styles", name:"AJ Styles", rating:89, brand:"SmackDown", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"la-knight", name:"LA Knight", rating:88, brand:"SmackDown", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"damian-priest", name:"Damian Priest", rating:88, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"bayley", name:"Bayley", rating:88, brand:"SmackDown", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"sami-zayn", name:"Sami Zayn", rating:87, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"kevin-owens", name:"Kevin Owens", rating:87, brand:"SmackDown", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"finn-balor", name:"Finn Balor", rating:87, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"drew-mcintyre", name:"Drew McIntyre", rating:91, brand:"Raw", role:"Wrestler", tier:"Main Event" },
+  { id:"bianca-belair", name:"Bianca Belair", rating:95, brand:"SmackDown", role:"Wrestler", tier:"Main Event" },
+  { id:"charlotte-flair", name:"Charlotte Flair", rating:94, brand:"SmackDown", role:"Wrestler", tier:"Main Event" },
+  { id:"becky-lynch", name:"Becky Lynch", rating:94, brand:"Raw", role:"Wrestler", tier:"Main Event" },
+  { id:"tiffany-stratton", name:"Tiffany Stratton", rating:85, brand:"SmackDown", role:"Wrestler", tier:"Featured" },
+  { id:"nia-jax", name:"Nia Jax", rating:86, brand:"SmackDown", role:"Wrestler", tier:"Featured" },
+  { id:"iyo-sky", name:"IYO SKY", rating:88, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"asuka", name:"Asuka", rating:89, brand:"Raw", role:"Wrestler", tier:"Upper Midcard" },
+  { id:"jade-cargill", name:"Jade Cargill", rating:87, brand:"SmackDown", role:"Wrestler", tier:"Featured" },
+  { id:"naomi", name:"Naomi", rating:84, brand:"SmackDown", role:"Wrestler", tier:"Featured" },
+  { id:"dominik-mysterio", name:"Dominik Mysterio", rating:83, brand:"Raw", role:"Wrestler", tier:"Featured TV" },
+  { id:"chad-gable", name:"Chad Gable", rating:80, brand:"Raw", role:"Wrestler", tier:"Workhorse" },
+  { id:"dragon-lee", name:"Dragon Lee", rating:81, brand:"Raw", role:"Wrestler", tier:"Workhorse" },
+  { id:"carmelo-hayes", name:"Carmelo Hayes", rating:82, brand:"SmackDown", role:"Wrestler", tier:"Featured TV" },
+  { id:"andrade", name:"Andrade", rating:84, brand:"SmackDown", role:"Wrestler", tier:"Featured" },
+  { id:"bron-breakker", name:"Bron Breakker", rating:86, brand:"Raw", role:"Wrestler", tier:"Featured" },
+  { id:"trick-williams", name:"Trick Williams", rating:86, brand:"NXT", role:"Wrestler", tier:"NXT Star" },
+  { id:"oba-femi", name:"Oba Femi", rating:85, brand:"NXT", role:"Wrestler", tier:"NXT Star" },
+  { id:"paul-heyman", name:"Paul Heyman", rating:96, brand:"SmackDown", role:"Manager", tier:"Elite Manager" },
+  { id:"scarlett", name:"Scarlett", rating:78, brand:"Raw", role:"Manager", tier:"Manager" },
+  { id:"b-fab", name:"B-Fab", rating:76, brand:"SmackDown", role:"Manager", tier:"Manager" },
+  { id:"triple-h", name:"Triple H", rating:95, brand:"WWE", role:"Executive", tier:"Major Authority" },
+  { id:"adam-pearce", name:"Adam Pearce", rating:82, brand:"Raw", role:"Authority Figure", tier:"GM" },
+  { id:"nick-aldis", name:"Nick Aldis", rating:84, brand:"SmackDown", role:"Authority Figure", tier:"GM" },
+  { id:"ava", name:"Ava", rating:78, brand:"NXT", role:"Authority Figure", tier:"NXT GM" },
+  { id:"michael-cole", name:"Michael Cole", rating:94, brand:"Raw", role:"Commentator", tier:"Lead Announcer" },
+  { id:"corey-graves", name:"Corey Graves", rating:88, brand:"Raw", role:"Commentator", tier:"Color Commentator" },
+  { id:"joe-tessitore", name:"Joe Tessitore", rating:86, brand:"SmackDown", role:"Commentator", tier:"Play-by-Play" },
+  { id:"wade-barrett", name:"Wade Barrett", rating:86, brand:"SmackDown", role:"Commentator", tier:"Color Commentator" },
+  { id:"vic-joseph", name:"Vic Joseph", rating:82, brand:"NXT", role:"Commentator", tier:"Play-by-Play" },
+  { id:"booker-t", name:"Booker T", rating:84, brand:"NXT", role:"Commentator", tier:"Color Commentator" },
+  { id:"pat-mcafee", name:"Pat McAfee", rating:90, brand:"WWE", role:"Commentator", tier:"Special Attraction" },
+  { id:"alicia-taylor", name:"Alicia Taylor", rating:80, brand:"Raw", role:"Ring Announcer", tier:"Ring Announcer" },
+  { id:"mike-rome", name:"Mike Rome", rating:78, brand:"NXT", role:"Ring Announcer", tier:"Ring Announcer" },
+  { id:"cathy-kelley", name:"Cathy Kelley", rating:82, brand:"Raw", role:"Interviewer", tier:"Backstage Interviewer" },
+  { id:"jackie-redmond", name:"Jackie Redmond", rating:82, brand:"Raw", role:"Interviewer", tier:"Backstage Interviewer" },
+  { id:"byron-saxton", name:"Byron Saxton", rating:80, brand:"SmackDown", role:"Interviewer", tier:"Backstage Interviewer" }
+];
+
+function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n||0)}
+function stock(n){return (n||0).toLocaleString("en-US",{maximumFractionDigits:2})}
+function salary(item){const r=item.rating,role=item.role;if(["Commentator","Executive","Authority Figure"].includes(role))return r>=94?12000000:r>=88?7500000:r>=82?4500000:2500000;if(role==="Manager")return r>=94?10000000:r>=85?5500000:2500000;if(["Ring Announcer","Interviewer"].includes(role))return r>=82?2500000:1500000;if(r>=96)return 25000000;if(r>=93)return 18000000;if(r>=90)return 14000000;if(r>=86)return 9500000;if(r>=82)return 6500000;if(r>=78)return 4000000;if(r>=72)return 2200000;return 1000000}
+function income(item){const r=item.rating;if(item.role==="Commentator")return Math.floor(salary(item)*.28);if(["Executive","Authority Figure"].includes(item.role))return Math.floor(salary(item)*.25);if(item.role==="Manager")return Math.floor(salary(item)*.22);if(["Ring Announcer","Interviewer"].includes(item.role))return Math.floor(salary(item)*.2);if(r>=96)return 6000000;if(r>=93)return 4500000;if(r>=90)return 3500000;if(r>=86)return 2500000;if(r>=82)return 1750000;if(r>=78)return 1100000;if(r>=72)return 650000;return 300000}
+function getLeagues(){return JSON.parse(localStorage.getItem(KEY)||"[]")} function saveLeagues(l){localStorage.setItem(KEY,JSON.stringify(l))} function getLeague(id){return getLeagues().find(l=>l.id===id)} function updateLeague(u){saveLeagues(getLeagues().map(l=>l.id===u.id?u:l))}
+function addLedger(l,type,amount,note){l.ledger.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString(),type,amount,note})} function totalSpent(l){return l.ledger.filter(x=>x.type==="spent").reduce((a,b)=>a+b.amount,0)} function totalEarned(l){return l.ledger.filter(x=>x.type==="earned").reduce((a,b)=>a+b.amount,0)}
+function createLeague(mode){const input=document.getElementById("leagueName");const name=(input&&input.value.trim())||(mode==="solo"?"One Player Mode":"Local Multiplayer League");const l={id:`${mode}-${Date.now()}`,name,mode,draftStatus:"not_started",bank:STARTING_BANK,roster:[],ledger:[],tkoShares:0,tradesRemaining:4,score:0,createdAt:new Date().toISOString()};saveLeagues([...getLeagues(),l]);location.hash=`league:${l.id}`;render()}
+function deleteLeague(id){if(!confirm("Delete this league?"))return;saveLeagues(getLeagues().filter(l=>l.id!==id));renderLeagues()}
+function setDraftStatus(id,status){const l=getLeague(id);l.draftStatus=status;updateLeague(l);renderLeague(id)}
+function resetDraft(id){if(!confirm("Reset draft? Clears roster, cash, ledger, stock, and trades."))return;const l=getLeague(id);l.draftStatus="not_started";l.bank=STARTING_BANK;l.roster=[];l.ledger=[];l.tkoShares=0;l.tradesRemaining=4;l.score=0;updateLeague(l);renderLeague(id)}
+function draftTalent(leagueId,talentId){const l=getLeague(leagueId);const item=TALENT.find(x=>x.id===talentId);if(!l||!item)return;if(l.roster.some(x=>x.id===talentId))return alert("Already drafted.");const cost=salary(item);if(l.bank<cost)return alert("Not enough cash.");l.bank-=cost;l.roster.push({...item,salary:cost,owner:l.mode==="solo"?"You":"Player 1"});addLedger(l,"spent",cost,`Drafted ${item.name}`);updateLeague(l);renderDraft(leagueId,"Drafted successfully.")}
+function removeTalent(leagueId,talentId){const l=getLeague(leagueId);const item=l.roster.find(x=>x.id===talentId);if(!item)return;if(!confirm(`Undraft ${item.name} and refund ${money(item.salary)}?`))return;l.roster=l.roster.filter(x=>x.id!==talentId);l.bank+=item.salary;addLedger(l,"earned",item.salary,`Refunded ${item.name}`);updateLeague(l);renderDraft(leagueId,"Removed and refunded.")}
+function awardWeeklyIncome(id){const l=getLeague(id);const earned=l.roster.reduce((a,b)=>a+income(b),0);const stockBonus=Math.floor(earned/5000000);l.bank+=earned;l.score+=earned;l.tkoShares+=stockBonus;addLedger(l,"earned",earned,`Weekly roster income + ${stockBonus} TKO shares`);updateLeague(l);renderScoreboard(id)}
+function useTrade(id){const l=getLeague(id);if(l.tradesRemaining<=0)return alert("No trades remaining this cycle.");l.tradesRemaining-=1;addLedger(l,"spent",0,"Used 1 trade move");updateLeague(l);renderTrades(id)}
+function resetTradeWindow(id){const l=getLeague(id);l.tradesRemaining=4;addLedger(l,"earned",0,"Trade window reset after Big 4 PLE");updateLeague(l);renderTrades(id)}
+function menu(id=""){return `<div class="menu"><strong>☰ Menu</strong><div class="menu-row"><button onclick="location.hash='';render()">Home</button><button onclick="location.hash='leagues';render()">Leagues</button>${id?`<button onclick="location.hash='league:${id}';render()">League</button><button onclick="location.hash='draft:${id}';render()">Draft</button><button onclick="location.hash='roster:${id}';render()">Roster</button><button onclick="location.hash='score:${id}';render()">Score</button><button onclick="location.hash='income:${id}';render()">Income</button><button onclick="location.hash='stock:${id}';render()">TKO Stock</button><button onclick="location.hash='trades:${id}';render()">Trades</button>`:""}<button onclick="location.hash='sources';render()">Sources</button></div></div>`}
+function home(){document.getElementById("app").innerHTML=`<main class="page">${menu()}<section class="card"><div class="small">Manager upgrade static version</div><h1>WWE Fantasy League</h1><p class="small">Draft, undraft, track score, income, trades, TKO stock bonuses, and build a full wrestling roster.</p></section><section class="grid"><div class="button-card gold" onclick="location.hash='leagues';render()">🎮 Start Playing</div><div class="button-card" onclick="location.hash='sources';render()">📡 Live Result Sources</div></section></main>`}
+function renderLeagues(){const leagues=getLeagues();document.getElementById("app").innerHTML=`<main class="page">${menu()}<h1>Your Leagues</h1><section class="card"><strong>Connecting with other players</strong><p class="small">This static version is local/device-only. For now, local multiplayer means one person manages picks on one device. True online multiplayer needs Supabase/login added back later.</p></section><section class="card"><strong>Starting Bank</strong><div class="money">${money(STARTING_BANK)}</div></section><section class="grid"><input id="leagueName" placeholder="League name, optional"/><button onclick="createLeague('solo')">🎮 Create One Player Mode</button><button onclick="createLeague('local_multiplayer')">👥 Create Local Multiplayer League</button></section>${leagues.length===0?`<section class="card" style="margin-top:16px"><strong>No leagues yet</strong></section>`:`<section class="list">${leagues.map(l=>`<div class="row"><div onclick="location.hash='league:${l.id}';render()" style="cursor:pointer"><strong>${l.name}</strong><div class="small">${l.mode==="solo"?"One Player Mode":"Local Multiplayer"} · ${l.roster.length} drafted</div><div class="small">Bank: ${money(l.bank)} · Score: ${money(l.score)} · TKO: ${stock(l.tkoShares)} shares</div><span class="badge">Draft: ${l.draftStatus.replace("_"," ")}</span></div><button class="danger" style="margin-top:10px" onclick="deleteLeague('${l.id}')">Delete League</button></div>`).join("")}</section>`}</main>`}
+function renderLeague(id){const l=getLeague(id);if(!l)return renderLeagues();document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<section class="card"><div class="small">${l.mode==="solo"?"One Player Mode":"Local Multiplayer"}</div><h1>${l.name}</h1><div class="money">${money(l.bank)}</div><span class="badge">Draft: ${l.draftStatus.replace("_"," ")}</span><span class="badge">Trades left: ${l.tradesRemaining}</span><span class="badge">TKO: ${stock(l.tkoShares)} shares</span></section><section class="grid">${l.draftStatus==="not_started"?`<button onclick="setDraftStatus('${id}','in_progress')">Start Draft</button>`:""}${l.draftStatus==="in_progress"?`<div class="button-card gold" onclick="location.hash='draft:${id}';render()">Continue Draft</div><button onclick="setDraftStatus('${id}','complete')">Mark Draft Complete</button>`:""}${l.draftStatus==="complete"?`<div class="button-card" onclick="location.hash='roster:${id}';render()">Roster</div><div class="button-card" onclick="location.hash='score:${id}';render()">Scoreboard</div><div class="button-card" onclick="location.hash='income:${id}';render()">Income Tracker</div><div class="button-card" onclick="location.hash='stock:${id}';render()">TKO Stock</div><div class="button-card" onclick="location.hash='trades:${id}';render()">Trades</div>`:""}<button class="danger" onclick="resetDraft('${id}')">Reset Draft</button></section></main>`}
+function tabs(id){const roles=["All","Wrestler","Manager","Authority Figure","Commentator","Ring Announcer","Interviewer"];return `<div class="tabs">${roles.map(r=>`<div class="tab ${filterRole===r?"active":""}" onclick="filterRole='${r}';renderDraft('${id}')">${r}</div>`).join("")}</div>`}
+function renderDraft(id,msg=""){const l=getLeague(id);if(!l)return renderLeagues();const list=filterRole==="All"?TALENT:TALENT.filter(x=>x.role===filterRole);document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>Draft</h1><section class="card"><strong>Available Bank</strong><div class="money">${money(l.bank)}</div><p class="small">Drafted: ${l.roster.length} · Pool: ${TALENT.length}</p></section>${tabs(id)}${msg?`<p class="small">${msg}</p>`:""}<section class="list">${list.map(w=>{const owned=l.roster.some(r=>r.id===w.id);const cost=salary(w);return `<div class="row"><strong>${w.name}</strong><div class="small">${w.role} · ${w.tier} · ${w.brand} ${w.champion?"· Champion":""}</div><div class="small">Rating: ${w.rating}</div><div class="small">Contract: ${money(cost)} · Weekly value: ${money(income(w))}</div>${owned?`<button class="danger" style="margin-top:10px" onclick="removeTalent('${id}','${w.id}')">Deselect / Undraft</button>`:`<button ${l.bank<cost?"disabled":""} style="margin-top:10px" onclick="draftTalent('${id}','${w.id}')">${l.bank<cost?"Not Enough Cash":`Draft ${w.name}`}</button>`}</div>`}).join("")}</section></main>`}
+function renderRoster(id){const l=getLeague(id);if(!l)return renderLeagues();document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>Roster</h1><section class="card"><strong>Bank</strong><div class="money">${money(l.bank)}</div></section><section class="list">${l.roster.length?l.roster.map(w=>`<div class="row"><strong>${w.name}</strong><div class="small">${w.role} · ${w.tier} · ${w.brand}</div><div class="small">Salary: ${money(w.salary)} · Weekly value: ${money(income(w))}</div></div>`).join(""):`<div class="card"><strong>No roster yet</strong></div>`}</section></main>`}
+function renderScoreboard(id){const l=getLeague(id);if(!l)return renderLeagues();const rosterValue=l.roster.reduce((a,b)=>a+salary(b),0);document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>Scoreboard</h1><section class="grid"><div class="card"><strong>Fantasy Score</strong><div class="money">${money(l.score)}</div></div><div class="card"><strong>Bank</strong><div class="money">${money(l.bank)}</div></div><div class="card"><strong>Roster Value</strong><div class="money">${money(rosterValue)}</div></div><div class="card"><strong>TKO Stock</strong><div class="money">${stock(l.tkoShares)} shares</div></div><button onclick="awardWeeklyIncome('${id}')">Simulate Weekly Income</button></section></main>`}
+function renderIncome(id){const l=getLeague(id);if(!l)return renderLeagues();document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>Income Tracker</h1><section class="grid"><div class="card"><strong>Total Spent</strong><div class="money">${money(totalSpent(l))}</div></div><div class="card"><strong>Total Earned</strong><div class="money">${money(totalEarned(l))}</div></div><div class="card"><strong>Net</strong><div class="money">${money(totalEarned(l)-totalSpent(l))}</div></div></section><section class="list">${l.ledger.length?l.ledger.map(x=>`<div class="row"><strong>${x.note}</strong><div class="small">${x.date}</div><div class="small">${x.type} · ${money(x.amount)}</div></div>`).join(""):`<div class="card"><strong>No transactions yet</strong></div>`}</section></main>`}
+function renderStock(id){const l=getLeague(id);if(!l)return renderLeagues();const value=l.tkoShares*TKO_PRICE;document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>TKO Stock</h1><section class="card"><strong>Current tracked price</strong><div class="money">$${TKO_PRICE.toFixed(2)}</div><p class="small">Static placeholder from latest lookup. Update manually later or connect live finance API in online version.</p></section><section class="grid"><div class="card"><strong>Your shares</strong><div class="money">${stock(l.tkoShares)}</div></div><div class="card"><strong>Estimated value</strong><div class="money">${money(value)}</div></div><div class="card"><strong>Trading leverage</strong><p class="small">Use TKO shares as bonus leverage in player trades.</p></div></section></main>`}
+function renderTrades(id){const l=getLeague(id);if(!l)return renderLeagues();document.getElementById("app").innerHTML=`<main class="page">${menu(id)}<h1>Trades</h1><section class="card"><strong>Trades Remaining</strong><div class="money">${l.tradesRemaining} / 4</div><p class="small">Four trades are allowed between draft windows. Reset after Royal Rumble, WrestleMania, SummerSlam, and Survivor Series.</p></section><section class="grid"><button onclick="useTrade('${id}')">Use 1 Trade</button><button onclick="resetTradeWindow('${id}')">Reset Trade Window After Big 4 PLE</button></section></main>`}
+function renderSources(){document.getElementById("app").innerHTML=`<main class="page">${menu()}<h1>Live Result Sources</h1><div class="card"><strong>Sources</strong><p class="small">WWE.com for official results. Wrestling Inc and Ringside News for reaction/context. Yahoo Finance or a finance API can be used later for live TKO price.</p></div></main>`}
+function render(){const h=location.hash.replace("#","");if(!h)return home();if(h==="leagues")return renderLeagues();if(h==="sources")return renderSources();if(h.startsWith("league:"))return renderLeague(h.split(":")[1]);if(h.startsWith("draft:"))return renderDraft(h.split(":")[1]);if(h.startsWith("roster:"))return renderRoster(h.split(":")[1]);if(h.startsWith("score:"))return renderScoreboard(h.split(":")[1]);if(h.startsWith("income:"))return renderIncome(h.split(":")[1]);if(h.startsWith("stock:"))return renderStock(h.split(":")[1]);if(h.startsWith("trades:"))return renderTrades(h.split(":")[1]);return home()}
+window.addEventListener("hashchange",render);render();
+</script></body></html>

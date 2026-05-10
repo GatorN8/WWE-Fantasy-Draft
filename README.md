@@ -1,0 +1,1 @@
+WWE Fantasy Manager Upgrade static app. Upload index.html, manifest.json, icons, and README.md to GitHub root.
